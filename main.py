@@ -40,6 +40,7 @@ def decoderbw(image_path: str):
             data += "0"
         else:
             data += "1"
+    print(data)
 
 def encoderrgbw(data: str):
     data_lenght = len(data)
