@@ -1,6 +1,7 @@
 #Using Python 3.12.2
 
 from PIL import Image
+import textwrap
 
 color_code = {"00": (255, 255, 255),
               "01": (255, 0, 0),
@@ -11,6 +12,21 @@ color_code_inverted = {s: c for c, s in color_code.items()}
 
 black = (0, 0, 0)
 white = (255, 255, 255)
+red = (255, 0, 0)
+
+forbidden_zones = []
+
+forbidden_zone1 = [(x,y) for y in range(10) for x in range(10)]
+forbidden_zone2 = [(x,y) for y in range(10) for x in range(14, 23)]
+forbidden_zone3 = [(x,y) for y in range(14, 23) for x in range(10)]
+forbidden_zone4 = [(7,y) for y in range(10, 14)]
+forbidden_zone5 = [(x,7) for x in range(10, 14)]
+
+forbidden_zones.extend(forbidden_zone1)
+forbidden_zones.extend(forbidden_zone2)
+forbidden_zones.extend(forbidden_zone3)
+forbidden_zones.extend(forbidden_zone4)
+forbidden_zones.extend(forbidden_zone5)
 
 def encoderbw(data: str):
     data_lenght = len(data)
@@ -90,7 +106,6 @@ def qr1_square(image, x, y):
     return image
 
 def qr1_reserved(image):
-    red = (255, 0, 0)
 
     for i in range(1, 9):
         image.putpixel((i, 9), red)
@@ -116,7 +131,7 @@ def qr1_data_upw(image, x, y):
     ...
 
 def qr1_encoding_mode(image):
-    [image.putpixel((20+x,20+y), (255, 255, 0)) for y in range(2) for x in range(2)]
+    image.putpixel((20, 20), black)
     return image
 
 def qr1_ecl(image, ecl): # Error correction level function
@@ -183,9 +198,138 @@ def qr1_fec(image): # Format Error Correction function
 
     return image
 
+def qr1_write_data(image, data):
+    x, y = 21, 15
+    
+    bytes = textwrap.wrap(data, 8)
+
+    for j in range(len(bytes)):
+        image, x, y = draw_section(image, bytes[j], x, y, j)
+        
+    return image
+
+ups = [0, 1, 2, 7, 8, 13, 14, 15, 16, 23, 25]
+downs = [4, 5, 10, 11, 18, 19, 20, 21, 22, 24, 26]
+tols = [3, 9, 17]
+tods = [6, 12]
+
+def bit_color(bit):
+    if bit == "1":
+        return black
+    else:
+        return white
+
+def draw_section(image, byte, x, y, j):
+    print(byte)
+    j += 2
+    print(j)
+    match j:
+        case w if w in ups: # SECTION 1
+            print("SECTION 1")
+            print(x,y)
+            n = 0
+            for i, bit in enumerate(byte):
+                color = bit_color(bit)
+
+                if i % 2 == 0:
+                    x_offset = x
+                else:
+                    x_offset = x-1
+                
+                if i % 2 == 0:
+                    n += 1
+                    
+                    y_offset = y - (n-1)
+
+                print(x_offset, y_offset)
+                if (x_offset, y_offset) in forbidden_zones:
+                    raise Exception(IndexError)
+                
+                
 
 
-def qr1():
+                image.putpixel((x_offset, y_offset), color)
+
+            if j == 15:
+                y_offset -= 1
+            x = x_offset
+            x += 1
+            y = y_offset
+            y -= 1
+            print(x, y)
+
+        case w if w in tols: # SECTION 2
+            print("SECTION 2")
+            ys = [y, y, y-1, y-1, y-1, y-1, y, y]
+            xs = [x, x-1, x, x-1, x-2, x-3, x-2, x-3]
+            for i, bit in enumerate(byte):
+
+                color = bit_color(bit)
+
+                
+                x_offset = xs[i]
+                y_offset = ys[i]
+                    
+                if (x_offset, y_offset) in forbidden_zones:
+                    raise Exception(IndexError)
+                print(x_offset, y_offset)
+                image.putpixel((x_offset, y_offset), color)
+                # image.show()
+            y += 1
+            x -= 3
+            print(x, y)
+        case w if w in tods: # SECTION 3
+            print("SECTION 3")
+            ys = [y, y, y+1, y+1, y+1, y+1, y, y]
+            xs = [x+1, x, x+1, x, x-1, x-2, x-1, x-2]
+            for i, bit in enumerate(byte):
+
+                color = bit_color(bit)
+
+                
+                x_offset = xs[i]
+                y_offset = ys[i]
+                    
+                if (x_offset, y_offset) in forbidden_zones:
+                    raise Exception(IndexError)
+                print(x_offset, y_offset)
+                image.putpixel((x_offset, y_offset), color)
+                # image.show()
+            x_offset = x
+            x -= 1
+            y_offset = y
+            y -= 1
+            print(x, y)
+        case w if w in downs: # SECTION 4
+            print("SECTION 4")
+            n = 0
+            for i, bit in enumerate(byte):
+
+                color = bit_color(bit)
+
+                if i % 2 == 0:
+                    x_offset = x+1
+                else:
+                    x_offset = x
+                
+                if i % 2 == 0:
+                    n += 1
+                    y_offset = y + n-1
+                    
+                if (x_offset, y_offset) in forbidden_zones:
+                    raise Exception(IndexError)
+                print(x_offset, y_offset)
+                image.putpixel((x_offset, y_offset), color)
+                # image.show()
+            x = x_offset
+            y = y_offset
+            y += 1
+            print(x, y)
+
+    return image, x, y
+
+
+def qr1(data):
     image = Image.new("RGB", size=(23,23), color=(255, 255, 255))
 
     image = qr1_square(image, 1, 1) # Top left
@@ -201,8 +345,16 @@ def qr1():
 
     image = qr1_fec(image)
 
+    image = qr1_write_data(image, data)
+
+    # for i in forbidden_zones:
+    #     image.putpixel(i, red)
+    
+    # image.putpixel((20, 11), (0,255,0))
+
     image.show()
+    image.save("qr.png")
 
 #encoderrgbw("010010000110010101101100011011000110111100100000011101110110111101110010011011000110010000100001")
 
-# qr1()
+qr1("0111011101110111011101110010111001110111011010010110101101101001011100000110010101100100011010010110000100101110011011110111001001100111")
