@@ -9,6 +9,9 @@ color_code = {"00": (255, 255, 255),
 
 color_code_inverted = {s: c for c, s in color_code.items()}
 
+black = (0, 0, 0)
+white = (255, 255, 255)
+
 def encoderbw(data: str):
     data_lenght = len(data)
 
@@ -21,9 +24,9 @@ def encoderbw(data: str):
 
     for x, bit in enumerate(data):
         if bit == "0":
-            image.putpixel((x, 0), (255, 255, 255))
+            image.putpixel((x, 0), white)
         elif bit == "1":
-            image.putpixel((x, 0), (0, 0, 0))
+            image.putpixel((x, 0), black)
         else:
             pass
 
@@ -36,7 +39,7 @@ def decoderbw(image_path: str):
 
     for x in range(image.width):
         pixel = image.getpixel((x, 0))
-        if pixel == (255, 255, 255):
+        if pixel == white:
             data += "0"
         else:
             data += "1"
@@ -71,3 +74,135 @@ def decoderrgbw(image_path: str):
     
     print(data)
 
+def qr1_square(image, x, y):
+    for i in range(7):
+        x_offset = x+i
+        y_offset = y+i
+        image.putpixel((x_offset, y), black)
+        image.putpixel((x_offset, y+6), black)
+        image.putpixel((x,  y_offset), black)
+        image.putpixel((x+6,  y_offset), black)
+    
+    for i in range(3):
+        for j in range(3):
+            image.putpixel((x+i+2, y+j+2), black)
+
+    return image
+
+def qr1_reserved(image):
+    red = (255, 0, 0)
+
+    for i in range(1, 9):
+        image.putpixel((i, 9), red)
+        image.putpixel((9, i), red)
+        image.putpixel((i+13, 9), red)
+        image.putpixel((9, i+13), red)
+    image.putpixel((9, 9), red)
+    
+    for i in range(5):
+        if i%2 == 0:
+            color = black
+        else:
+            color = white
+
+        image.putpixel((i+9, 7), color)
+        image.putpixel((7, i+9), color)
+    
+    image.putpixel((9, 14), black)
+    
+    return image
+
+def qr1_data_upw(image, x, y):
+    ...
+
+def qr1_encoding_mode(image):
+    [image.putpixel((20+x,20+y), (255, 255, 0)) for y in range(2) for x in range(2)]
+    return image
+
+def qr1_ecl(image, ecl): # Error correction level function
+
+    if ecl == "L":
+        color1, color2, color3, color4 = black, black, black, black
+    elif ecl == "M":
+        color1, color2, color3, color4 = black, white, black, white
+    elif ecl == "Q":
+        color1, color2, color3, color4 = white, black, black, white
+    elif ecl == "H":
+        color1, color2, color3, color4 = white, white, white, white
+    else:
+        raise Exception(ValueError)
+    
+    image.putpixel((1,9), color1)
+    image.putpixel((2,9), color2)
+    image.putpixel((9,20), color3)
+    image.putpixel((9,21), color4)
+
+    return image
+
+def qr1_mask_pattern(image, mask_pattern):
+
+    if mask_pattern == 1:
+        ...
+    elif mask_pattern == 2:
+        ...
+    elif mask_pattern == 3:
+        ...
+    elif mask_pattern == 4:
+        image.putpixel((3, 9), black)
+        image.putpixel((4, 9), white)
+        image.putpixel((5, 9), white)
+        image.putpixel((9, 17), black)
+        image.putpixel((9, 18), white)
+        image.putpixel((9, 19), white)
+
+    elif mask_pattern == 5:
+        ...
+    elif mask_pattern == 6:
+        ...
+    elif mask_pattern == 7:
+        ...
+    elif mask_pattern == 8:
+        ...
+    else:
+        raise Exception(ValueError)
+    
+    return image
+
+def qr1_fec(image): # Format Error Correction function
+
+    image.putpixel((6, 9), black)
+    image.putpixel((8, 9), white)
+    [image.putpixel((9, y), black) for y in range(1, 10)]
+    image.putpixel((9, 3), white)
+    image.putpixel((9, 4), white)
+    image.putpixel((9, 15), white)
+    image.putpixel((9, 16), black)
+    [image.putpixel((x, 9), black) for x in range(14, 22)]
+    image.putpixel((19, 9), white)
+    image.putpixel((18, 9), white)
+
+    return image
+
+
+
+def qr1():
+    image = Image.new("RGB", size=(23,23), color=(255, 255, 255))
+
+    image = qr1_square(image, 1, 1) # Top left
+    image = qr1_square(image, 15, 1) # Top right
+    image = qr1_square(image, 1, 15) # Bottom left
+    image = qr1_reserved(image)
+
+    image = qr1_encoding_mode(image)
+
+    image = qr1_ecl(image, "L")
+
+    image = qr1_mask_pattern(image, 4)
+
+    image = qr1_fec(image)
+
+    image.show()
+
+#encoderrgbw("010010000110010101101100011011000110111100100000011101110110111101110010011011000110010000100001")
+
+# qr1()
