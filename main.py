@@ -198,6 +198,16 @@ def qr1_fec(image): # Format Error Correction function
 
     return image
 
+def data_end(x, y, j):
+    if j in ups:
+        y -= 1
+        x -= 3
+    elif j in tols or j in downs:
+        y += 2
+    elif j in tods:
+        y -= 2
+    return x, y
+
 def qr1_write_data(image, data):
     x, y = 21, 15
     
@@ -205,7 +215,9 @@ def qr1_write_data(image, data):
 
     for j in range(len(bytes)):
         image, x, y = draw_section(image, bytes[j], x, y, j)
-        
+    
+    x, y = data_end(x, y, j)
+
     return image
 
 ups = [0, 1, 2, 7, 8, 13, 14, 15, 16, 23, 25]
