@@ -1,0 +1,1 @@
+Images come from here: [https://www.maketecheasier.com/how-qr-codes-work/](https://www.maketecheasier.com/how-qr-codes-work/)
